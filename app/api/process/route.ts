@@ -161,21 +161,15 @@ export async function POST(request: NextRequest) {
           throw new Error("請在 .env.local 中設定 ANTHROPIC_API_KEY");
         }
 
-        const formData = await request.formData();
-        const file = formData.get("audio") as File;
-        const language = (formData.get("language") as Language) || "en";
+        const body = await request.json();
+        const uploadUrl: string = body.audio_url;
+        const language = (body.language as Language) || "en";
 
-        if (!file) throw new Error("請上傳音檔");
-
-        // Step 1: Upload to AssemblyAI
-        send({ step: "uploading", message: "正在上傳音檔至伺服器..." });
+        if (!uploadUrl) throw new Error("缺少音檔 URL");
 
         const assemblyClient = new AssemblyAI({
           apiKey: assemblyKey,
         });
-
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const uploadUrl = await assemblyClient.files.upload(buffer);
 
         // Step 2: Transcribe with speaker diarization
         send({

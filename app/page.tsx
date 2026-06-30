@@ -20,16 +20,22 @@ export default function Home() {
   const [showHistory, setShowHistory] = useState(false);
 
   const handleSubmit = async (file: File, language: Language) => {
-    setState({ phase: "loading", step: "uploading", message: "準備上傳..." });
-
-    const formData = new FormData();
-    formData.append("audio", file);
-    formData.append("language", language);
+    setState({ phase: "loading", step: "uploading", message: "正在上傳音檔..." });
 
     try {
+      // Upload directly to AssemblyAI via edge proxy (bypasses Vercel 4.5MB limit)
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "content-type": "application/octet-stream" },
+        body: file,
+      });
+      if (!uploadRes.ok) throw new Error("音檔上傳失敗，請重試");
+      const { upload_url } = await uploadRes.json();
+
       const response = await fetch("/api/process", {
         method: "POST",
-        body: formData,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ audio_url: upload_url, language }),
       });
 
       if (!response.ok) throw new Error(`伺服器錯誤：${response.status}`);
