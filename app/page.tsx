@@ -23,10 +23,17 @@ export default function Home() {
     setState({ phase: "loading", step: "uploading", message: "正在上傳音檔..." });
 
     try {
-      // Upload directly to AssemblyAI via edge proxy (bypasses Vercel 4.5MB limit)
-      const uploadRes = await fetch("/api/upload", {
+      // Get AssemblyAI key, then upload directly from browser (bypasses Vercel body limit)
+      const tokenRes = await fetch("/api/upload");
+      if (!tokenRes.ok) throw new Error("無法取得上傳憑證");
+      const { key } = await tokenRes.json();
+
+      const uploadRes = await fetch("https://api.assemblyai.com/v2/upload", {
         method: "POST",
-        headers: { "content-type": "application/octet-stream" },
+        headers: {
+          authorization: key,
+          "content-type": "application/octet-stream",
+        },
         body: file,
       });
       if (!uploadRes.ok) throw new Error("音檔上傳失敗，請重試");
